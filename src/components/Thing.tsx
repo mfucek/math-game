@@ -1,7 +1,9 @@
 'use client';
 
 import classNames from 'classnames';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useScore } from './ScoreProvider';
 
 const ThingClick = ({
 	val,
@@ -28,6 +30,49 @@ const ThingClick = ({
 			}}>
 			{val}
 		</div>
+	);
+};
+
+const baseTime = 100;
+let currentTime = baseTime;
+let lastTick = 0;
+
+let startTime = Date.now();
+
+const Timer = ({ time: _ }: { time: number }) => {
+	const [time, setTime] = useState(baseTime);
+
+	const router = useRouter();
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			const deltaTime = lastTick == 0 ? 0 : (Date.now() - lastTick) / 1000;
+			lastTick = Date.now();
+
+			const rate = (Date.now() - startTime) ** (1 / 2) * 0.05;
+
+			currentTime -= deltaTime * rate;
+			setTime(currentTime);
+
+			if (currentTime <= 0) {
+				clearInterval(interval);
+				router.push('/end');
+			}
+		}, 16);
+		return () => clearInterval(interval);
+	}, []);
+
+	return (
+		<>
+			<div className="absolute w-full p-10">
+				<div className="w-full h-10 bg-gray-900 rounded-2xl overflow-hidden">
+					<div
+						className="h-full bg-gray-500 rounded-2xl"
+						style={{ width: time + '%' }}
+					/>
+				</div>
+			</div>
+		</>
 	);
 };
 
@@ -62,8 +107,11 @@ export const Thing = () => {
 		return [f, s];
 	};
 
+	const { score, setScore } = useScore();
+
 	return (
 		<>
+			<Timer time={25} />
 			<div className="flex flex-col items-center justify-center h-screen">
 				<div className="w-full text-center text-6xl font-bold mb-10">
 					{first} - {second} = ?
@@ -84,6 +132,13 @@ export const Thing = () => {
 										Math.floor(Math.random() * 10)
 									].sort(() => (Math.random() > 0.5 ? 1 : -1))
 								);
+								if (a === Math.abs(first - second)) {
+									currentTime += 10;
+									if (currentTime > baseTime) {
+										currentTime = baseTime;
+									}
+									setScore(score + 1);
+								}
 							}}
 						/>
 					))}
